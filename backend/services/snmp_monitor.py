@@ -78,46 +78,27 @@ class SNMPMonitor:
         mem = self._get(OID_SYS_MEM)
         sessions = self._get(OID_SYS_SESSIONS)
         
-        # If the fortinet device is unreachable or SNMP is not active, 
-        # mock gracefully to avoid crashing, but log the failure
         if cpu is None:
-            # Fallback mock for testing dashboard
-            print("SNMP Warning: Could not fetch real stats. Using simulated fallback.")
-            return {
-                "cpu": random.randint(10, 40),
-                "memory": random.randint(40, 70),
-                "sessions": random.randint(1000, 2000),
-                "uptime": 864000,
-                "firmware": "PinGuard OS v1.0",
-                "hostname": "PG-AWS-01"
-            }
+            raise Exception("No se pudo obtener la información desde el FortiGate por SNMP (Dispositivo inalcanzable).")
             
         return {
             "cpu": cpu,
             "memory": mem,
             "sessions": sessions,
-             "uptime": 864000, # Would ideally use 1.3.6.1.2.1.1.3.0
-            "firmware": "PinGuard OS v1.0",
-            "hostname": "PG-AWS-01"
+            "uptime": 0,
+            "firmware": "FortiOS",
+            "hostname": "FortiGate"
         }
 
     def get_interfaces(self):
-        # Fetch interface names and status
         names = self._walk(OID_IF_DESCR)
         statuses = self._walk(OID_IF_OPER_STATUS) # 1 = up, 2 = down
         
         if not names:
-            # Fallback mock
-            return [
-                { "name": 'Wan1', "alias": 'Puerto de red', "status": 'up', "type": 'physical' },
-                { "name": 'Wan2', "alias": 'Puerto de red', "status": 'down', "type": 'physical' },
-                { "name": 'Eth1', "alias": 'Puerto de red', "status": 'up', "type": 'physical' },
-                { "name": 'Eth2', "alias": 'Puerto de red', "status": 'up', "type": 'physical' }
-            ]
+            raise Exception("No se pudieron obtener las interfaces desde el FortiGate por SNMP.")
             
         interfaces = []
         for idx, name_bytes in names.items():
-            # sometimes name comes as hexstring or ascii
             name = str(name_bytes)
             status_val = statuses.get(idx, 2)
             status = 'up' if status_val == 1 else 'down'
@@ -132,14 +113,13 @@ class SNMPMonitor:
         return interfaces
 
     def get_traffic_summary(self):
-        # Approximate traffic by just taking system wide average or picking key interfaces
-        # In a real app we'd query ifInOctets and compare with previous value to get rate.
-        # Since this is a simple dashboard endpoint, we simulate the traffic chart values.
-        
-        # Real integration would store previous octets and calculate difference.
+        # En caso de no poder conectar, lanzar excepción en lugar de simular
+        cpu = self._get(OID_SYS_CPU)
+        if cpu is None:
+            raise Exception("Dispositivo inalcanzable para medir tráfico.")
         return {
-            "rx": random.randint(400, 800),
-            "tx": random.randint(200, 500)
+            "rx": 0,
+            "tx": 0
         }
 
 # Create a singleton instance

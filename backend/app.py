@@ -31,46 +31,63 @@ def health_check():
 
 @app.route('/api/dashboard/stats', methods=['GET'])
 def get_dashboard_stats():
-    stats = snmp_service.get_system_stats()
-    interfaces = snmp_service.get_interfaces()
-    
-    # Calculate interfaces UP count
-    up_count = sum(1 for i in interfaces if i['status'] == 'up')
-    
-    stats['interfaces_up'] = up_count
-    stats['interfaces_total'] = len(interfaces)
-    
-    return jsonify({
-        "success": True,
-        "data": stats
-    })
+    try:
+        stats = snmp_service.get_system_stats()
+        interfaces = snmp_service.get_interfaces()
+        
+        # Calculate interfaces UP count
+        up_count = sum(1 for i in interfaces if i['status'] == 'up')
+        
+        stats['interfaces_up'] = up_count
+        stats['interfaces_total'] = len(interfaces)
+        
+        return jsonify({
+            "success": True,
+            "data": stats
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
 
 @app.route('/api/dashboard/traffic', methods=['GET'])
 def get_traffic():
-    # Keep last 24 points to match JS logic
-    current_traffic = snmp_service.get_traffic_summary()
-    
-    traffic_history.append({
-        "timestamp": int(time.time() * 1000),
-        "rx": current_traffic['rx'],
-        "tx": current_traffic['tx']
-    })
-    
-    if len(traffic_history) > 24:
-        traffic_history.pop(0)
+    try:
+        current_traffic = snmp_service.get_traffic_summary()
         
-    return jsonify({
-        "success": True,
-        "data": traffic_history
-    })
+        traffic_history.append({
+            "timestamp": int(time.time() * 1000),
+            "rx": current_traffic['rx'],
+            "tx": current_traffic['tx']
+        })
+        
+        if len(traffic_history) > 24:
+            traffic_history.pop(0)
+            
+        return jsonify({
+            "success": True,
+            "data": traffic_history
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
 
 @app.route('/api/interfaces', methods=['GET'])
 def get_interfaces():
-    interfaces = snmp_service.get_interfaces()
-    return jsonify({
-        "success": True,
-        "data": interfaces
-    })
+    try:
+        interfaces = snmp_service.get_interfaces()
+        return jsonify({
+            "success": True,
+            "data": interfaces
+        })
+    except Exception as e:
+        return jsonify({
+            "success": False,
+            "message": str(e)
+        }), 500
 
 @app.route('/api/interfaces/<name>/toggle', methods=['PUT'])
 def toggle_interface(name):
